@@ -1,0 +1,10 @@
+# Ignore artifacts:
+build
+coverage
+package.json
+package-lock.json
+README.md
+tailwind.config.js
+tsconfig.json
+next.config.js
+postcss.config.js
