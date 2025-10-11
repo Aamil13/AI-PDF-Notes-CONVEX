@@ -41,6 +41,10 @@ const useAppStore = create<AppState>()(
     {
       name: "app-store", // Key for localStorage
       storage: createJSONStorage(() => localStorage), // Use localStorage
+      //   partialize: (state) => ({
+      //     ...state,
+      //     hasVisited: false,
+      //   }),
     },
   ),
 );

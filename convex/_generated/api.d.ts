@@ -13,6 +13,10 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as langchain_db from "../langchain/db.js";
+import type * as myActions from "../myActions.js";
+import type * as pdf_storage from "../pdf_storage.js";
+import type * as user from "../user.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -22,7 +26,12 @@ import type {
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  "langchain/db": typeof langchain_db;
+  myActions: typeof myActions;
+  pdf_storage: typeof pdf_storage;
+  user: typeof user;
+}>;
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">

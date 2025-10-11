@@ -1,26 +1,26 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { Button } from "../ui/button";
-import { FiUpload } from "react-icons/fi";
-import { BsChatLeftQuoteFill, BsChatLeftDots } from "react-icons/bs";
-import { CiClock2, CiTrash, CiStar } from "react-icons/ci";
-import { LiaFilePdf } from "react-icons/lia";
-import { Progress } from "@/components/ui/progress";
-import { FaFileInvoiceDollar } from "react-icons/fa6";
-import { useRouter, useSelectedLayoutSegment } from "next/navigation";
-import useAppStore from "@/Store/useAppStore";
-import { motion } from "framer-motion";
-import { Skeleton } from "../ui/skeleton";
-import useDeviceType from "@/Hooks/useDeviceType";
-import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
-import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
-type Props = {};
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Button } from '../ui/button';
+import { FiUpload } from 'react-icons/fi';
+import { BsChatLeftQuoteFill, BsChatLeftDots } from 'react-icons/bs';
+import { CiClock2, CiTrash, CiStar } from 'react-icons/ci';
+import { LiaFilePdf } from 'react-icons/lia';
+import { Progress } from '@/components/ui/progress';
+import { FaFileInvoiceDollar } from 'react-icons/fa6';
+import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
+import useAppStore from '@/Store/useAppStore';
+import { motion } from 'framer-motion';
+import { Skeleton } from '../ui/skeleton';
+import useDeviceType from '@/Hooks/useDeviceType';
+import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
+import { MdKeyboardDoubleArrowLeft } from 'react-icons/md';
+import UploadTrigger from '../UploadTrigger';
 
 const tabs = [
-  { icon: CiClock2, title: "Recent" },
-  { icon: LiaFilePdf, title: "All PDF" },
-  { icon: CiStar, title: "Starred" },
-  { icon: CiTrash, title: "Trash" },
+  { icon: CiClock2, title: 'Recent' },
+  { icon: LiaFilePdf, title: 'All PDF' },
+  { icon: CiStar, title: 'Starred' },
+  { icon: CiTrash, title: 'Trash' },
 ];
 
 const Sidebar = () => {
@@ -34,18 +34,18 @@ const Sidebar = () => {
   const { isMobile } = useDeviceType();
 
   const segment = useSelectedLayoutSegment();
-  const [currentTab, setCurrentTab] = useState("Recent");
+  const [currentTab, setCurrentTab] = useState('Recent');
   const navigate = useRouter();
   const capitalize = (s: string) =>
-    s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+    s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   useEffect(() => {
     if (!segment) return;
 
     const capitalizedSegment = capitalize(segment);
 
     if (capitalizedSegment !== currentTab) {
-      if (capitalizedSegment == "All") {
-        setCurrentTab("All PDF");
+      if (capitalizedSegment == 'All') {
+        setCurrentTab('All PDF');
       } else {
         setCurrentTab(capitalizedSegment);
       }
@@ -55,19 +55,25 @@ const Sidebar = () => {
   const handleTabChange = (e: React.MouseEvent, value: string) => {
     setCurrentTab(value);
     e.stopPropagation();
-    const routeToNavigate = value.replace(" ", "").toLowerCase();
+    const routeToNavigate = value.replace(' ', '').toLowerCase();
 
-    if (routeToNavigate === "allpdf") {
+    if (routeToNavigate === 'allpdf') {
       navigate.push(`/all`);
     } else {
       navigate.push(`/${routeToNavigate}`);
     }
   };
 
+  useEffect(() => {
+    if (isNavbarCollapsed == null) {
+      toggleNavbar();
+    }
+  }, []);
+
   if (isNavbarCollapsed == null) {
     return (
       <div
-        className={` ${!isNavbarCollapsed ? " w-14 " : "w-52"} h-full transition-all duration-1000  flex flex-col items-center gap-8`}
+        className={` ${!isNavbarCollapsed ? ' w-14 ' : 'w-52'} h-full transition-all duration-1000  flex flex-col items-center gap-8`}
       >
         <div className="flex items-center gap-2 justify-center p-4">
           <BsChatLeftQuoteFill color="#24AFFC" size={24} />
@@ -108,7 +114,7 @@ const Sidebar = () => {
       )}
 
       <div
-        className={` ${isNavbarCollapsed ? " w-14 " : "w-52"} h-full transition-all duration-100 ${showSideBarOnMobile ? "left-0 z-20" : "-left-72"} ${isMobile && "absolute bg-white dark:bg-neutral-900"}  flex flex-col items-center gap-8`}
+        className={` ${isNavbarCollapsed ? ' w-14 ' : 'w-52'} h-full transition-all duration-100 ${showSideBarOnMobile ? 'left-0 z-20' : '-left-72'} ${isMobile && 'absolute bg-white dark:bg-neutral-900'}  flex flex-col items-center gap-8`}
       >
         <div className="flex items-center gap-2 justify-center p-4">
           {isMobile && (
@@ -150,17 +156,13 @@ const Sidebar = () => {
 
         <div className="flex flex-col w-full gap-4 justify-between h-full">
           <div className="flex flex-col gap-4 items-center w-11/12">
+            <UploadTrigger isNavbarCollapsed={isNavbarCollapsed} />
             <Button
+              onClick={() => navigate.push('/resume')}
               style={{ borderRadius: 10 }}
-              className={`bg-[#24AFFC] text-white hover:bg-[#24AFFC] active:bg-[#000000] hover:scale-105 transition-all duration-700 text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? "w-2/3 " : "mx-4 w-11/12 h-12"}`}
+              className={`bg-white text-neutral-800 hover:bg-[#24AFFC] hover:text-white active:bg-[#000000] text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3 ' : 'mx-4 w-11/12 h-12'}`}
             >
-              <FiUpload size={32} /> {!isNavbarCollapsed && "Upload"}
-            </Button>
-            <Button
-              style={{ borderRadius: 10 }}
-              className={`bg-white text-neutral-800 hover:bg-[#24AFFC] hover:text-white active:bg-[#000000] text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? "w-2/3 " : "mx-4 w-11/12 h-12"}`}
-            >
-              <BsChatLeftDots size={32} /> {!isNavbarCollapsed && "Resume"}
+              <BsChatLeftDots size={32} /> {!isNavbarCollapsed && 'Resume'}
             </Button>
           </div>
 
@@ -172,30 +174,30 @@ const Sidebar = () => {
                 initial={{ opacity: 0.6 }}
                 animate={{
                   opacity: 1,
-                  color: currentTab === item.title ? "#24AFFC" : "#737373",
+                  color: currentTab === item.title ? '#24AFFC' : '#737373',
                   borderLeftColor:
-                    currentTab === item.title ? "#24AFFC" : "transparent",
+                    currentTab === item.title ? '#24AFFC' : 'transparent',
                 }}
                 //   whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className={`cursor-pointer flex items-center relative py-2 transition-all duration-100 ${
-                  isNavbarCollapsed ? "justify-center" : "gap-10"
+                  isNavbarCollapsed ? 'justify-center' : 'gap-10'
                 } border-l-4`}
               >
                 <motion.div
                   animate={{
                     rotate: currentTab === item.title ? 360 : 0,
                   }}
-                  transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                   // className={isNavbarCollapsed   ? "bg-white" : ""}
                 >
                   <item.icon
                     className={
-                      theme == "dark" && currentTab !== item.title
-                        ? "text-white"
+                      theme == 'dark' && currentTab !== item.title
+                        ? 'text-white'
                         : currentTab === item.title
-                          ? "text-[#24AFFC]"
-                          : ""
+                          ? 'text-[#24AFFC]'
+                          : ''
                     }
                     size={26}
                   />
@@ -206,11 +208,11 @@ const Sidebar = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 1 }}
                     className={
-                      theme == "dark" && currentTab !== item.title
-                        ? "text-white font-medium"
+                      theme == 'dark' && currentTab !== item.title
+                        ? 'text-white font-medium'
                         : currentTab === item.title
-                          ? "text-[#24AFFC] font-medium"
-                          : "font-medium"
+                          ? 'text-[#24AFFC] font-medium'
+                          : 'font-medium'
                     }
                   >
                     {item.title}
@@ -221,7 +223,7 @@ const Sidebar = () => {
           </div>
 
           <div
-            className={`${isNavbarCollapsed ? "" : "h-40 bg-[#24AFFC]"} m-4 rounded-xl flex flex-col gap-4 items-center justify-between pb-5`}
+            className={`${isNavbarCollapsed ? '' : 'h-40 bg-[#24AFFC]'} m-4 rounded-xl flex flex-col gap-4 items-center justify-between pb-5`}
           >
             {!isNavbarCollapsed && (
               <div className="w-full flex flex-col items-center">
@@ -232,10 +234,10 @@ const Sidebar = () => {
 
             <Button
               style={{ borderRadius: 10 }}
-              className={`bg-white text-neutral-800 hover:bg-white active:bg-[#000000] font-poppins flex items-center gap-2 ${isNavbarCollapsed ? "w-2/3" : "mx-4 w-11/12 h-12"}`}
+              className={`bg-white text-neutral-800 hover:bg-white active:bg-[#000000] font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3' : 'mx-4 w-11/12 h-12'}`}
             >
-              <FaFileInvoiceDollar size={32} />{" "}
-              {!isNavbarCollapsed && "Upgrade for 4$"}
+              <FaFileInvoiceDollar size={32} />{' '}
+              {!isNavbarCollapsed && 'Upgrade for 4$'}
             </Button>
           </div>
         </div>

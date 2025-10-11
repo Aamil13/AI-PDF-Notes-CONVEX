@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
-
+import { ClerkProvider } from "@clerk/nextjs";
 import ConvexProviderWrapper from "@/convex/ConvexProvider/ConvexProvider";
 
 const poppins = Poppins({
@@ -24,10 +24,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${poppins.variable} ${geistMono.variable} antialiased`}>
-        <ConvexProviderWrapper>{children}</ConvexProviderWrapper>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${poppins.variable} ${geistMono.variable} antialiased  `}
+        >
+          <ConvexProviderWrapper>{children}</ConvexProviderWrapper>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
