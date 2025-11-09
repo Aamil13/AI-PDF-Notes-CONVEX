@@ -1,26 +1,46 @@
 import React, { useRef, useState } from 'react';
-import { useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Check, Loader2 } from 'lucide-react';
+import { generateGeminiAnswer } from '@/configs/AIModal';
+import { ChatType } from '../ChatArea';
+import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type Props = {
   fileId: string;
+  setChats: (chats: ChatType[]) => void;
+  chats: ChatType[];
 };
 
-const ChatInputBox = ({ fileId }: Props) => {
+const ChatInputBox = ({ fileId, setChats, chats }: Props) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const searchAI = useAction(api.myActions.search);
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [searchAllPdf, setSearchAllPdf] = useState(false);
   const [status, setStatus] = useState('idle');
+  const pushMessageToConvex = useMutation(api.chatMessages.createPdfMessages);
 
   const handleSendMessage = async () => {
     const textarea = textareaRef.current;
-    console.log('text', textarea?.value);
 
-    const result = await searchAI({ query: textarea?.value || '', fileId });
-    console.log('Search Result:', result);
+    if (!textarea?.value) return;
+    setChats([...chats, { role: 'user', content: textarea.value }]);
+    pushMessageToConvex({ role: 'user', content: textarea.value, fileId });
+
+    const result = await searchAI({
+      query: textarea?.value,
+      fileId,
+      searchAllPdf,
+    });
+
+    const userMessage = { role: 'user', content: textarea.value };
+    const chatsWithUser = [...chats, userMessage];
 
     const UnFormattedAns = JSON.parse(result);
     let AllUnFormattedAns = '';
@@ -28,8 +48,38 @@ const ChatInputBox = ({ fileId }: Props) => {
       AllUnFormattedAns += ans.pageContent;
     });
 
-    const PROMPT = `The following is the context information extracted from a PDF document:\n\n${AllUnFormattedAns}\n\nUsing the above information, provide a concise and accurate answer to the user's question: "${textarea?.value}" in HTML format. If the information is insufficient to answer the question, respond with "I don't know" in HTML format.`;
+    const PROMPT = `
+You are given the following extracted text from a PDF resume or document:
+
+${AllUnFormattedAns}
+
+Current date: ${new Date().toISOString().split('T')[0]}.
+
+Answer the user's question: "${textarea?.value}" in detailed HTML format.
+
+Guidelines:
+1. Always base your answer strictly on the extracted text above. If the question involves facts, summaries, skills, or descriptions — answer only using what's present in the text.
+2. If the question involves **dates, durations, or calculations** (for example: "total work experience", "duration of employment", "time between roles", etc.), you must:
+   - Identify all date ranges mentioned (e.g., 07/2023 - 12/2023, 04/2024 - 2025).
+   - Treat end dates with only a year (e.g., "2025") as ongoing up to the current date unless explicitly stated otherwise.
+   - Compute durations in months and provide a human-friendly format (e.g., "2 years and 1 month").
+   - Include the breakdown for each experience in your HTML.
+3. If context is too limited to calculate or answer confidently, respond only with: "I don't know".
+4. Use clean structured HTML tags: <h3>, <ul>, <li>, <p>, and <div>.
+5. Apply Tailwind CSS classes for styling:
+   - Every <div> must have class "gap-2".
+   - All other tags (<p>, <h3>, <ul>, <li>, etc.) should include class "mb-1".
+   - Never use max-w, fixed heights, or width restrictions.
+6. Respond **only with the HTML** content. Do not restate the question or add explanations outside HTML.
+
+Now generate the HTML answer following all the above rules.
+`;
+
+    const answer = await generateGeminiAnswer(PROMPT);
+    pushMessageToConvex({ role: 'ai', content: answer, fileId });
+    setChats([...chatsWithUser, { role: 'ai' as any, content: answer }]);
   };
+
   const handleInput = () => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -38,23 +88,15 @@ const ChatInputBox = ({ fileId }: Props) => {
     }
   };
 
-  console.log('state', status);
-
   const handleSend = async () => {
     if (status === 'loading') return;
 
-    console.log('state loading');
     setStatus('loading');
 
     await handleSendMessage();
 
-    console.log('state sent');
     setStatus('sent');
-
-    setTimeout(() => {
-      console.log('state idle');
-      setStatus('idle');
-    }, 1000);
+    setStatus('idle');
   };
 
   return (
@@ -77,71 +119,31 @@ const ChatInputBox = ({ fileId }: Props) => {
         placeholder='Start typing your message... (e.g., "Summarize the document")'
       ></textarea>
 
-      {/* <button
-        onClick={handleSendMessage}
-        type="button"
-        className="
-      absolute bottom-4 right-4
-      bg-blue-600 hover:bg-blue-700 text-white
-      rounded-lg py-2 px-4 shadow-md
-    "
-      >
-        Send ➤
-      </button> */}
-
-      {/* <motion.button
-        type="button"
-        onClick={handleSend}
-        className="
-          absolute bottom-4 right-4
-          bg-blue-600 text-white rounded-full p-3
-          shadow-md hover:bg-blue-700 focus:outline-none
-          flex items-center justify-center
-        "
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        transition={{ type: 'spring', stiffness: 300 }}
-        disabled={status === 'loading'}
-      >
-        <AnimatePresence mode="wait">
-          {status === 'loading' && (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Loader2 className="w-5 h-5 animate-spin" />
-            </motion.div>
-          )}
-
-          {status === 'sent' && (
-            <motion.div
-              key="sent"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Check className="w-5 h-5" />
-            </motion.div>
-          )}
-
-          {status === 'idle' && (
-            <motion.div
-              key="send"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Send className="w-5 h-5" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button> */}
-
+      <div className=" absolute  bottom-4 right-32 flex items-center ">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Switch
+                  checked={searchAllPdf}
+                  onCheckedChange={setSearchAllPdf}
+                  className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-md">
+                <p>Enable deep search</p>
+                <p className="text-xs text-gray-500">
+                  (Search across all pages of the PDF and uses more tokens. You
+                  can also include words like "all", "entire", "full",
+                  "everything" in your query to enable this automatically)
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <button
         onClick={handleSend}
         type="button"

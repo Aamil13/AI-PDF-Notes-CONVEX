@@ -1,26 +1,31 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface AppState {
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
   isNavbarCollapsed: boolean | null;
   showSideBarOnMobile: boolean;
   toggleShowSideBarOnMobile: () => void;
   toggleTheme: () => void;
   toggleNavbar: () => void;
   setInitialTheme: () => void;
+  totalFilesUploaded?: number;
+  setTotalFilesUploaded?: (count: number) => void;
 }
 
 const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      theme: "light",
+      theme: 'light',
       isNavbarCollapsed: null,
       showSideBarOnMobile: false,
+      totalFilesUploaded: 0,
+      setTotalFilesUploaded: (count: number) =>
+        set({ totalFilesUploaded: count }),
 
       toggleTheme: () => {
-        const newTheme = get().theme === "light" ? "dark" : "light";
-        document.documentElement.classList.toggle("dark", newTheme === "dark");
+        const newTheme = get().theme === 'light' ? 'dark' : 'light';
+        document.documentElement.classList.toggle('dark', newTheme === 'dark');
         set({ theme: newTheme });
       },
 
@@ -33,20 +38,20 @@ const useAppStore = create<AppState>()(
       setInitialTheme: () => {
         const savedTheme = get().theme;
         document.documentElement.classList.toggle(
-          "dark",
-          savedTheme === "dark",
+          'dark',
+          savedTheme === 'dark'
         );
       },
     }),
     {
-      name: "app-store", // Key for localStorage
+      name: 'app-store', // Key for localStorage
       storage: createJSONStorage(() => localStorage), // Use localStorage
       //   partialize: (state) => ({
       //     ...state,
       //     hasVisited: false,
       //   }),
-    },
-  ),
+    }
+  )
 );
 
 export default useAppStore;

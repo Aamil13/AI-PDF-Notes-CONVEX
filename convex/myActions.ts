@@ -1,8 +1,8 @@
 import { ConvexVectorStore } from '@langchain/community/vectorstores/convex';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { TaskType } from '@google/generative-ai';
 import { action } from './_generated/server.js';
 import { v } from 'convex/values';
+import { api } from './_generated/api.js';
 
 export const ingest = action({
   args: {
@@ -10,12 +10,10 @@ export const ingest = action({
     fileId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Ensure splitText is an array
     const splitTextArray = Array.isArray(args.splitText)
       ? args.splitText
       : [args.splitText];
 
-    // Create a metadata object for each chunk
     const metadataArray = splitTextArray.map(() => ({ fileId: args.fileId }));
 
     await ConvexVectorStore.fromTexts(
@@ -24,37 +22,46 @@ export const ingest = action({
       new GoogleGenerativeAIEmbeddings({
         apiKey: process.env.GOOGLE_API_KEY ?? '',
         model: 'text-embedding-004', // 768 dimensions
-        taskType: TaskType.RETRIEVAL_DOCUMENT,
-        title: 'Document title',
       }),
       { ctx }
     );
   },
 });
 
-export const search = action({
+export const search: ReturnType<typeof action> = action({
   args: {
     query: v.string(),
     fileId: v.string(),
+    searchAllPdf: v.boolean(),
   },
   handler: async (ctx, args) => {
     const vectorStore = new ConvexVectorStore(
       new GoogleGenerativeAIEmbeddings({
         apiKey: process.env.GOOGLE_API_KEY ?? '',
         model: 'text-embedding-004',
-        taskType: TaskType.RETRIEVAL_DOCUMENT,
-        title: 'Document title',
       }),
       { ctx }
     );
 
-    const resultOne = await (
-      await vectorStore.similaritySearch(args.query, 1)
-    ).filter(
-      (res) => (res.metadata as Record<string, any>).fileId === args.fileId
-    );
-    console.log(resultOne);
+    // const wantsAll = /\ball\b/i.test(args.query);
+    const wantsAll =
+      /\b(all|total|full|entire|everything|complete|whole)\b/i.test(
+        args.query
+      ) || args.searchAllPdf;
+    let results;
 
-    return JSON.stringify(resultOne);
+    if (wantsAll) {
+      results = await ctx.runQuery(api.document.getAllDocuments, {
+        fileId: args.fileId,
+      });
+    } else {
+      results = await vectorStore.similaritySearch(args.query, 10);
+
+      results = results.filter(
+        (res) => (res.metadata as Record<string, any>).fileId === args.fileId
+      );
+    }
+
+    return JSON.stringify(results);
   },
 });

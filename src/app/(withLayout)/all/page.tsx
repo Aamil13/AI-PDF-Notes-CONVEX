@@ -1,5 +1,6 @@
-import ALLPDFTable from "@/components/tables/all";
-import React from "react";
+// import ALLPDFTable from "@/components/tables/all";
+import { ALLPDFTable } from '@/components/tables/all';
+import React from 'react';
 
 const All = () => {
   return (

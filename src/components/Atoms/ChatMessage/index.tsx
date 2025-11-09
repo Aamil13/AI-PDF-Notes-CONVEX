@@ -1,14 +1,16 @@
 import React from 'react';
 import { Bot, User } from 'lucide-react'; // You can use any icons you prefer
+import { removeHtmlBackticks } from '@/lib/utils';
 
 interface ChatMessageProps {
-  sender: 'ai' | 'me';
+  sender: 'ai' | 'user';
   message: string;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message }) => {
   const isAI = sender === 'ai';
 
+  const sanitizedMessage = removeHtmlBackticks(message);
   return (
     <div
       className={`flex items-start gap-3  ${
@@ -30,12 +32,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message }) => {
       <div
         className={`max-w-xs mt-4 md:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-md ${
           isAI
+            ? 'bg-indigo-600 dark:bg-indigo-800  text-white dark:text-neutral-300 rounded-tl-none'
+            : 'bg-gray-800 dark:bg-gray-900 text-gray-100 dark:text-neutral-300 rounded-tr-none border border-gray-700'
+        }`}
+        dangerouslySetInnerHTML={{ __html: sanitizedMessage }}
+      ></div>
+      {/* <div
+        className={`max-w-xs mt-4 md:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-md ${
+          isAI
             ? 'bg-indigo-500 dark:bg-indigo-800  text-white dark:text-neutral-300 rounded-tl-none'
             : 'bg-gray-800 dark:bg-gray-900 text-gray-100 dark:text-neutral-300 rounded-tr-none border border-gray-700'
         }`}
       >
         {message}
-      </div>
+      </div> */}
     </div>
   );
 };

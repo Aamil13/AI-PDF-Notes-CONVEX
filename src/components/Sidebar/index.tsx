@@ -1,12 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { FiUpload } from 'react-icons/fi';
 import { BsChatLeftQuoteFill, BsChatLeftDots } from 'react-icons/bs';
 import { CiClock2, CiTrash, CiStar } from 'react-icons/ci';
 import { LiaFilePdf } from 'react-icons/lia';
 import { Progress } from '@/components/ui/progress';
-import { FaFileInvoiceDollar } from 'react-icons/fa6';
+
 import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
 import useAppStore from '@/Store/useAppStore';
 import { motion } from 'framer-motion';
@@ -15,12 +14,16 @@ import useDeviceType from '@/Hooks/useDeviceType';
 import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import { MdKeyboardDoubleArrowLeft } from 'react-icons/md';
 import UploadTrigger from '../UploadTrigger';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '@clerk/nextjs';
+import { PricingModal } from '../PricingModal/PricingModal';
 
 const tabs = [
   { icon: CiClock2, title: 'Recent' },
   { icon: LiaFilePdf, title: 'All PDF' },
-  { icon: CiStar, title: 'Starred' },
-  { icon: CiTrash, title: 'Trash' },
+  { icon: CiStar, title: 'Starred', status: 'coming soon' },
+  { icon: CiTrash, title: 'Trash', status: 'coming soon' },
 ];
 
 const Sidebar = () => {
@@ -30,7 +33,18 @@ const Sidebar = () => {
     showSideBarOnMobile,
     toggleShowSideBarOnMobile,
     toggleNavbar,
+    totalFilesUploaded,
+    setTotalFilesUploaded,
   } = useAppStore();
+  const userData = useUser();
+  const totalFiles = useQuery(api.pdf_storage.getUserFileCount, {
+    createdBy: userData.user?.primaryEmailAddress?.emailAddress || '',
+  });
+  const userDetails =
+    useQuery(api.user.getUserDataByEmail, {
+      email: userData.user?.primaryEmailAddress?.emailAddress || '',
+    }) || [];
+
   const { isMobile } = useDeviceType();
 
   const segment = useSelectedLayoutSegment();
@@ -38,6 +52,13 @@ const Sidebar = () => {
   const navigate = useRouter();
   const capitalize = (s: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+  useEffect(() => {
+    if (totalFiles?.totalCount && setTotalFilesUploaded) {
+      setTotalFilesUploaded(totalFiles.totalCount);
+    }
+  }, [totalFiles, setTotalFilesUploaded]);
+
   useEffect(() => {
     if (!segment) return;
 
@@ -52,7 +73,14 @@ const Sidebar = () => {
     }
   }, [segment]);
 
-  const handleTabChange = (e: React.MouseEvent, value: string) => {
+  const handleTabChange = (
+    e: React.MouseEvent,
+    value: string,
+    status: string
+  ) => {
+    if (status === 'coming soon') {
+      return;
+    }
     setCurrentTab(value);
     e.stopPropagation();
     const routeToNavigate = value.replace(' ', '').toLowerCase();
@@ -64,12 +92,16 @@ const Sidebar = () => {
     }
   };
 
+  const handleResumeClick = () => {
+    return;
+    navigate.push('/resume');
+  };
+
   useEffect(() => {
     if (isNavbarCollapsed == null) {
       toggleNavbar();
     }
   }, []);
-
   if (isNavbarCollapsed == null) {
     return (
       <div
@@ -156,9 +188,17 @@ const Sidebar = () => {
 
         <div className="flex flex-col w-full gap-4 justify-between h-full">
           <div className="flex flex-col gap-4 items-center w-11/12">
-            <UploadTrigger isNavbarCollapsed={isNavbarCollapsed} />
+            <UploadTrigger
+              isNavbarCollapsed={isNavbarCollapsed}
+              canUploadMore={
+                Number(totalFilesUploaded) < 5 ||
+                (Array.isArray(userDetails)
+                  ? 0
+                  : (userDetails?.planActiveTill ?? 0)) > Date.now()
+              }
+            />
             <Button
-              onClick={() => navigate.push('/resume')}
+              onClick={() => handleResumeClick()}
               style={{ borderRadius: 10 }}
               className={`bg-white text-neutral-800 hover:bg-[#24AFFC] hover:text-white active:bg-[#000000] text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3 ' : 'mx-4 w-11/12 h-12'}`}
             >
@@ -170,7 +210,9 @@ const Sidebar = () => {
             {tabs.map((item) => (
               <motion.div
                 key={item.title}
-                onClick={(e) => handleTabChange(e, item.title)}
+                onClick={(e) =>
+                  handleTabChange(e, item.title, item.status || '')
+                }
                 initial={{ opacity: 0.6 }}
                 animate={{
                   opacity: 1,
@@ -225,20 +267,72 @@ const Sidebar = () => {
           <div
             className={`${isNavbarCollapsed ? '' : 'h-40 bg-[#24AFFC]'} m-4 rounded-xl flex flex-col gap-4 items-center justify-between pb-5`}
           >
-            {!isNavbarCollapsed && (
+            {/* {!isNavbarCollapsed && (
               <div className="w-full flex flex-col items-center">
-                <Progress className="bg-[#3CC0FC] my-2 w-2/3" value={50} />
-                <p className="text-white text-sm">Free 4 out of 5</p>
+                <Progress
+                  className="bg-[#3CC0FC] my-2 w-2/3"
+                  value={((totalFilesUploaded as number) / 5) * 100}
+                />
+                <p className="text-white text-sm">
+                  Free {totalFilesUploaded} out of 5
+                </p>
+              </div>
+            )} */}
+
+            {!isNavbarCollapsed && (
+              <div className="w-full flex flex-col items-center text-white text-sm my-2">
+                {Array.isArray(userDetails) === false &&
+                userDetails?.planType === 'pro' &&
+                userDetails?.planActiveTill ? (
+                  <div className="flex flex-col items-center">
+                    <p className="text-lg font-semibold text-[#3CC0FC]">PRO</p>
+                    <p>
+                      Valid till{' '}
+                      {new Date(userDetails?.planActiveTill).toLocaleDateString(
+                        undefined,
+                        {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        }
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <Progress
+                      className="bg-[#3CC0FC] my-2 w-2/3"
+                      value={((totalFilesUploaded as number) / 5) * 100}
+                    />
+                    <p>Free {totalFilesUploaded} out of 5</p>
+                  </>
+                )}
               </div>
             )}
-
-            <Button
+            {/*<Button
               style={{ borderRadius: 10 }}
               className={`bg-white text-neutral-800 hover:bg-white active:bg-[#000000] font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3' : 'mx-4 w-11/12 h-12'}`}
             >
               <FaFileInvoiceDollar size={32} />{' '}
               {!isNavbarCollapsed && 'Upgrade for 4$'}
-            </Button>
+            </Button>*/}
+
+            <PricingModal
+              isNavbarCollapsed={isNavbarCollapsed}
+              isPlanValid={
+                !Array.isArray(userDetails) && userDetails?.planActiveTill
+                  ? (userDetails?.planActiveTill ?? 0) > Date.now()
+                  : false
+              }
+              planType={
+                !Array.isArray(userDetails) ? userDetails?.planType : undefined
+              }
+              planActiveTill={
+                !Array.isArray(userDetails)
+                  ? userDetails?.planActiveTill
+                  : undefined
+              }
+            />
           </div>
         </div>
       </div>

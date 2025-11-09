@@ -1,5 +1,6 @@
-"use client";
-import React, { useState } from "react";
+'use client';
+import React, { useState } from 'react';
+import { useQuery } from 'convex/react';
 import {
   createColumnHelper,
   flexRender,
@@ -9,219 +10,110 @@ import {
   useReactTable,
   SortingState,
   PaginationState,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table';
 import {
   BiSortAlt2,
   BiFirstPage,
   BiLastPage,
   BiChevronLeft,
   BiChevronRight,
-} from "react-icons/bi";
+} from 'react-icons/bi';
+import { api } from '../../../../convex/_generated/api';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
-// Dummy data type
+// Type definition matching your schema
 type PDF = {
-  id: string;
-  filename: string;
-  size: string;
-  lastModified: string;
-  author: string;
-  pages: number;
+  _id: string;
+  _creationTime: number;
+  storageId: string;
+  fileId: string;
+  fileName: string;
+  fileUrl: string;
+  createdBy: string;
 };
 
 // Format date consistently
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("en-US", {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
+const formatDate = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(date);
 };
 
-// Sample data
-const data: PDF[] = [
-  {
-    id: "1",
-    filename: "Annual Report 2024.pdf",
-    size: "2.4 MB",
-    lastModified: "2024-01-15",
-    author: "John Doe",
-    pages: 45,
-  },
-  {
-    id: "2",
-    filename: "Project Proposal.pdf",
-    size: "1.8 MB",
-    lastModified: "2024-01-20",
-    author: "Jane Smith",
-    pages: 12,
-  },
-  {
-    id: "3",
-    filename: "Financial Statement.pdf",
-    size: "3.2 MB",
-    lastModified: "2024-01-25",
-    author: "Mike Johnson",
-    pages: 28,
-  },
-  {
-    id: "4",
-    filename: "Technical Documentation.pdf",
-    size: "5.1 MB",
-    lastModified: "2024-01-30",
-    author: "Sarah Williams",
-    pages: 76,
-  },
-  {
-    id: "5",
-    filename: "Meeting Minutes.pdf",
-    size: "0.8 MB",
-    lastModified: "2024-02-01",
-    author: "Robert Brown",
-    pages: 8,
-  },
-  {
-    id: "6",
-    filename: "Research Paper.pdf",
-    size: "4.2 MB",
-    lastModified: "2024-02-02",
-    author: "Emily Chen",
-    pages: 52,
-  },
-  {
-    id: "7",
-    filename: "Marketing Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Tom Wilson",
-    pages: 34,
-  },
-  {
-    id: "8",
-    filename: "eight Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Wilson Tom",
-    pages: 34,
-  },
-  {
-    id: "9",
-    filename: "ninth Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Wil",
-    pages: 34,
-  },
-  {
-    id: "10",
-    filename: "test Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Tom Wilson",
-    pages: 34,
-  },
-  {
-    id: "11",
-    filename: "test Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Tom Wilson",
-    pages: 34,
-  },
-  {
-    id: "12",
-    filename: "test Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Tom Wilson",
-    pages: 34,
-  },
-  {
-    id: "13",
-    filename: "test Plan.pdf",
-    size: "2.1 MB",
-    lastModified: "2024-02-03",
-    author: "Tom Wilson",
-    pages: 34,
-  },
-];
-
 const columnHelper = createColumnHelper<PDF>();
 
-const ALLPDFTable = () => {
+export const ALLPDFTable = () => {
+  const userData = useUser();
+  const navigate = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 9,
   });
 
+  // Map sorting state to sortBy and sortOrder
+  const sortBy = sorting.length > 0 ? sorting[0].id : '_creationTime';
+  const sortOrder = sorting.length > 0 && sorting[0].desc ? 'desc' : 'asc';
+
+  // Fetch data from Convex API
+  const result = useQuery(api.pdf_storage.getUserAllFiles, {
+    createdBy: userData.user?.primaryEmailAddress?.emailAddress || '',
+    pageIndex: pagination.pageIndex,
+    pageSize: pagination.pageSize,
+    sortBy: sortBy as any,
+    sortOrder: sortOrder as any,
+  });
+
+  const handleNavigate = (fileID: string) => {
+    navigate.push(`/chat/${fileID}`);
+  };
+
   const columns = [
-    columnHelper.accessor("filename", {
+    columnHelper.accessor('fileName', {
       header: ({ column }) => (
         <button
           type="button"
           className="flex items-center gap-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Filename
+          File Name
           <BiSortAlt2 className="h-4 w-4" />
         </button>
       ),
-      cell: (info) => <div className="font-medium">{info.getValue()}</div>,
-    }),
-    columnHelper.accessor("size", {
-      header: ({ column }) => (
-        <button
-          type="button"
-          className="flex items-center gap-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Size
-          <BiSortAlt2 className="h-4 w-4" />
-        </button>
+      cell: (info) => (
+        <div className="font-medium truncate max-w-xs">{info.getValue()}</div>
       ),
     }),
-    columnHelper.accessor("lastModified", {
+    columnHelper.accessor('_creationTime', {
       header: ({ column }) => (
         <button
           type="button"
           className="flex items-center gap-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Last Modified
+          Created
           <BiSortAlt2 className="h-4 w-4" />
         </button>
       ),
       cell: (info) => formatDate(info.getValue()),
     }),
-    columnHelper.accessor("author", {
-      header: ({ column }) => (
-        <button
-          type="button"
-          className="flex items-center gap-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Author
-          <BiSortAlt2 className="h-4 w-4" />
-        </button>
-      ),
-    }),
-    columnHelper.accessor("pages", {
-      header: ({ column }) => (
-        <button
-          type="button"
-          className="flex items-center gap-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Pages
-          <BiSortAlt2 className="h-4 w-4" />
-        </button>
+    columnHelper.accessor('fileId', {
+      header: 'File ID',
+      cell: (info) => (
+        <div className="truncate max-w-xs text-xs text-gray-500">
+          {info.getValue()}
+        </div>
       ),
     }),
   ];
 
   const table = useReactTable({
-    data,
+    data: result?.data ?? [],
     columns,
     state: {
       sorting,
@@ -232,26 +124,30 @@ const ALLPDFTable = () => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false,
+    manualPagination: true,
+    rowCount: result?.totalCount ?? 0,
+    pageCount: result?.totalPages ?? 0,
   });
 
+  const isLoading = result === undefined;
+
   return (
-    <div className="w-full sm:min-h-96   ">
-      <div className="rounded-xl overflow-x-auto  max-md:h-5/6 border-neutral-300 dark:border-neutral-600 border">
-        <table className="w-full  rounded-xl ">
+    <div className="w-full sm:min-h-96">
+      <div className="rounded-xl overflow-x-auto max-md:h-5/6 border-neutral-300 dark:border-neutral-600 border">
+        <table className="w-full rounded-xl">
           <thead className="border-b dark:border-neutral-600 bg-neutral-100 dark:bg-neutral-800">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-3 text-left text-sm max-lg:text-xs font-semibold  dark:text-white text-neutral-900"
+                    className="px-6 py-3 text-left text-sm max-lg:text-xs font-semibold dark:text-white text-neutral-900"
                   >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                   </th>
                 ))}
@@ -259,26 +155,44 @@ const ALLPDFTable = () => {
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-b dark:border-neutral-700  bg-slate-50 dark:bg-neutral-800 hover:bg-slate-100"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="px-6 py-4 text-sm max-lg:text-xs dark:text-white text-neutral-900"
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+            {isLoading ? (
+              <tr>
+                <td colSpan={3} className="text-center py-8">
+                  Loading...
+                </td>
               </tr>
-            ))}
+            ) : table.getRowModel().rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="text-center py-8 text-gray-500">
+                  No files found
+                </td>
+              </tr>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b cursor-pointer dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-100"
+                  onClick={() => handleNavigate(row.original.fileId)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="px-6 py-4 text-sm max-lg:text-xs dark:text-white text-neutral-900"
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-2  mt-4">
+      <div className="flex items-center justify-between px-2 mt-4">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -299,8 +213,7 @@ const ALLPDFTable = () => {
           <span className="flex items-center gap-1 text-sm">
             <div>Page</div>
             <strong>
-              {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+              {(result?.pageIndex ?? 0) + 1} of {result?.totalPages ?? 0}
             </strong>
           </span>
           <button
@@ -320,23 +233,10 @@ const ALLPDFTable = () => {
             <BiLastPage className="h-4 w-4" />
           </button>
         </div>
-
-        {/* <select
-          value={table.getState().pagination.pageSize}
-          onChange={e => {
-            table.setPageSize(Number(e.target.value));
-          }}
-          className="rounded border p-1 text-sm"
-        >
-          {[9, 18, 35, 44, 55, 64].map(pageSize => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select> */}
+        <div className="text-sm text-gray-500">
+          Total: {result?.totalCount ?? 0} files
+        </div>
       </div>
     </div>
   );
 };
-
-export default ALLPDFTable;

@@ -21,9 +21,10 @@ import { useUser } from '@clerk/nextjs';
 import axios from 'axios';
 type Props = {
   isNavbarCollapsed: boolean;
+  canUploadMore: boolean;
 };
 
-const UploadTrigger = ({ isNavbarCollapsed }: Props) => {
+const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
   const [fileName, setFileName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +72,8 @@ const UploadTrigger = ({ isNavbarCollapsed }: Props) => {
         fileName: fileName + '.pdf',
         createdBy: user?.primaryEmailAddress?.emailAddress || 'unknown',
         fileUrl: fileUrl || '',
+        fileSize: file!.size,
+        updatedAt: new Date().toISOString(),
       });
 
       const getResult = await axios.get('/api/pdf-loader?pdfUrl=' + fileUrl);
@@ -88,21 +91,42 @@ const UploadTrigger = ({ isNavbarCollapsed }: Props) => {
     }
   };
 
+  //   const handleModalOpen = () => {
+  //     if (!canUploadMore) {
+  //       alert('Upgrade your plan to upload more PDFs.');
+  //       return;
+  //     } else {
+  //       setIsUploadModalOpen(true);
+  //     }
+
+  //   };
+
+  const handleOpenChange = (open: boolean) => {
+    // Only allow opening the modal if user can upload
+    if (open && !canUploadMore) {
+      alert('Upgrade your plan to upload more PDFs.');
+      return;
+    }
+    setIsUploadModalOpen(open);
+  };
+
   return (
-    <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-      <form className="w-full" onSubmit={handleSubmit}>
-        <DialogTrigger asChild>
+    <Dialog open={isUploadModalOpen} onOpenChange={handleOpenChange}>
+      <form className="w-full " onSubmit={handleSubmit}>
+        <DialogTrigger asChild className="">
           <Button
-            onClick={() => setIsUploadModalOpen(true)}
+            // onClick={() => handleOpenChange(true)}
             style={{ borderRadius: 10 }}
             className={`bg-[#24AFFC] mx-auto text-white hover:bg-[#24AFFC] active:bg-[#000000] hover:scale-105 transition-all duration-700 text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3 ' : ' w-11/12 h-12'}`}
           >
             <FiUpload size={32} /> {!isNavbarCollapsed && 'Upload PDF'}
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] bg-white rounded-2xl p-6">
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-neutral-600 rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle>Upload PDF</DialogTitle>
+            <DialogTitle className="dark:text-neutral-300">
+              Upload PDF
+            </DialogTitle>
             <DialogDescription>
               Select a PDF file and give it a name.
             </DialogDescription>

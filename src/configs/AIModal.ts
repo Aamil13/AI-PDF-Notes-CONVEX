@@ -1,64 +1,41 @@
-// To run this code you need to install the following dependencies:
-// npm install @google/genai mime
-// npm install -D @types/node
-
 import { GoogleGenAI } from '@google/genai';
-import mime from 'mime';
-import { writeFile } from 'fs';
 
-function saveBinaryFile(fileName: string, content: Buffer) {
-  writeFile(fileName, content, 'utf8', (err) => {
-    if (err) {
-      console.error(`Error writing file ${fileName}:`, err);
-      return;
-    }
-    console.log(`File ${fileName} saved to file system.`);
-  });
-}
+/**
+ * Generates an AI answer using Google's Gemini API.
+ *
+ * @param {string} prompt - The prompt or question to send to Gemini.
+ * @param {string} [model='gemini-2.0-flash-lite'] - Optional model name.
+ * @returns {Promise<string>} - The AI-generated response text.
+ */
+export async function generateGeminiAnswer(
+  prompt: string,
+  model = 'gemini-2.0-flash-lite'
+): Promise<string> {
+  if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+    throw new Error('Missing GEMINI_API_KEY environment variable.');
+  }
 
-async function main() {
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_API_KEY,
-  });
-  const config = {
-    responseModalities: ['IMAGE', 'TEXT'],
-  };
-  const model = 'gemini-2.5-flash-image';
-  const contents = [
-    {
-      role: 'user',
-      parts: [
+  try {
+    const ai = new GoogleGenAI({
+      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+    });
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
         {
-          text: `INSERT_INPUT_HERE`,
+          role: 'user',
+          parts: [{ text: prompt }],
         },
       ],
-    },
-  ];
+    });
 
-  const response = await ai.models.generateContentStream({
-    model,
-    config,
-    contents,
-  });
-  let fileIndex = 0;
-  for await (const chunk of response) {
-    if (
-      !chunk.candidates ||
-      !chunk.candidates[0].content ||
-      !chunk.candidates[0].content.parts
-    ) {
-      continue;
-    }
-    if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
-      const fileName = `ENTER_FILE_NAME_${fileIndex++}`;
-      const inlineData = chunk.candidates[0].content.parts[0].inlineData;
-      const fileExtension = mime.getExtension(inlineData.mimeType || '');
-      const buffer = Buffer.from(inlineData.data || '', 'base64');
-      saveBinaryFile(`${fileName}.${fileExtension}`, buffer);
-    } else {
-      console.log(chunk.text);
-    }
+    const aiResponse =
+      response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+    return aiResponse.trim();
+  } catch (error: any) {
+    console.error('Gemini API Error:', error);
+    return '⚠️ An error occurred while generating the answer.';
   }
 }
-
-main();

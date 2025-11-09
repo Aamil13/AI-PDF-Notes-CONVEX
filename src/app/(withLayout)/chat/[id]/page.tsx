@@ -3,12 +3,9 @@ import { useQuery } from 'convex/react';
 import { useParams } from 'next/navigation';
 import React from 'react';
 import { api } from '../../../../../convex/_generated/api';
-// import PDFViewer from '@/components/PdfViewer';
-
 import dynamic from 'next/dynamic';
 import ChatArea from '@/components/ChatArea';
 import useDeviceType from '@/Hooks/useDeviceType';
-import { FileText } from 'lucide-react';
 import ChatPdfDrawer from '@/components/ChatPdfDrawer';
 
 const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
@@ -27,13 +24,15 @@ const Chat = (props: Props) => {
   const fileId: string = (params.id as string) || '';
   const fileRecord = useQuery(api.pdf_storage.getFile, { fileId });
   const { isDesktop } = useDeviceType();
+
+  console.log('fileRecord', fileRecord);
+
   return (
     <div className="relative overflow-auto bg-white dark:bg-neutral-600 w-full h-full rounded-3xl flex flex-col  gap-4">
-      {/* <h1 className="text-lg font-bold">Chat</h1> */}
       <ChatPdfDrawer url={fileRecord?.fileUrl || ''} />
       <div className="h-full flex">
         <div className={`${isDesktop ? 'w-1/2' : 'w-full'}  h-full  `}>
-          <ChatArea fileId={fileId} />
+          <ChatArea fileId={fileId} convexFileId={fileRecord?._id || ''} />
         </div>
         {fileRecord?.fileUrl.length && isDesktop && (
           <div className="h-full w-1/2 ">
