@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { easeInOut, motion } from 'framer-motion';
 
 export default function Preloader() {
   // SVG animation variants
@@ -8,7 +8,7 @@ export default function Preloader() {
       pathLength: 1,
       opacity: 1,
       transition: {
-        pathLength: { duration: 1.3, ease: "easeInOut" },
+        pathLength: { duration: 1.3, ease: easeInOut },
         opacity: { duration: 0.5 },
       },
     },
@@ -22,7 +22,7 @@ export default function Preloader() {
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        ease: "easeInOut",
+        ease: 'easeInOut',
       },
     },
   };
@@ -49,7 +49,7 @@ export default function Preloader() {
           transition={{
             duration: 1.5,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: 'easeInOut',
           }}
         >
           <motion.svg className="w-full h-full" viewBox="0 0 100 100">

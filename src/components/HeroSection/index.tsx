@@ -1,6 +1,6 @@
-"use client";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+'use client';
+import { useState } from 'react';
+import { motion, AnimatePresence, spring } from 'framer-motion';
 import {
   FileText,
   Moon,
@@ -10,9 +10,9 @@ import {
   Upload,
   ArrowRight,
   Play,
-} from "lucide-react";
-import useAppStore from "@/Store/useAppStore";
-import { useRouter } from "next/navigation";
+} from 'lucide-react';
+import useAppStore from '@/Store/useAppStore';
+import { useRouter } from 'next/navigation';
 
 export const HeroSection = () => {
   const { theme } = useAppStore();
@@ -34,7 +34,7 @@ export const HeroSection = () => {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring",
+        type: spring,
         stiffness: 100,
       },
     },
@@ -52,9 +52,9 @@ export const HeroSection = () => {
           <motion.div variants={itemVariants} className="mb-8">
             <span
               className={`inline-block px-4 py-2 rounded-full text-sm font-medium border mb-6 ${
-                theme === "light"
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : "bg-[#24AFFC]/20 border-[#24AFFC]/30 text-[#24AFFC]"
+                theme === 'light'
+                  ? 'bg-blue-50 border-blue-200 text-blue-700'
+                  : 'bg-[#24AFFC]/20 border-[#24AFFC]/30 text-[#24AFFC]'
               }`}
             >
               ✨ AI-Powered PDF Intelligence
@@ -64,9 +64,9 @@ export const HeroSection = () => {
           <motion.h1
             variants={itemVariants}
             className={`text-5xl md:text-7xl font-bold mb-6 ${
-              theme === "light"
-                ? "bg-gradient-to-r from-gray-900 via-blue-800 to-[#24AFFC] bg-clip-text text-transparent"
-                : "bg-gradient-to-r from-white via-gray-200 to-[#24AFFC] bg-clip-text text-transparent"
+              theme === 'light'
+                ? 'bg-gradient-to-r from-gray-900 via-blue-800 to-[#24AFFC] bg-clip-text text-transparent'
+                : 'bg-gradient-to-r from-white via-gray-200 to-[#24AFFC] bg-clip-text text-transparent'
             }`}
           >
             Chat with Your
@@ -79,7 +79,7 @@ export const HeroSection = () => {
           <motion.p
             variants={itemVariants}
             className={`text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
+              theme === 'light' ? 'text-gray-600' : 'text-gray-300'
             }`}
           >
             Transform any PDF into an intelligent conversation. Ask questions,
@@ -94,7 +94,7 @@ export const HeroSection = () => {
             <motion.button
               whileHover={{
                 scale: 1.05,
-                boxShadow: "0 20px 40px rgba(36, 175, 252, 0.4)",
+                boxShadow: '0 20px 40px rgba(36, 175, 252, 0.4)',
               }}
               whileTap={{ scale: 0.95 }}
               className="bg-[#24AFFC] text-white hover:bg-blue-600 active:bg-black px-8 py-4 rounded-full font-semibold text-lg flex items-center space-x-2 shadow-lg transition-colors"
@@ -107,9 +107,9 @@ export const HeroSection = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               className={`border px-8 py-4 rounded-full font-semibold text-lg flex items-center space-x-2 transition-colors ${
-                theme === "light"
-                  ? "border-gray-300 hover:bg-gray-50"
-                  : "border-white/30 hover:bg-white/10"
+                theme === 'light'
+                  ? 'border-gray-300 hover:bg-gray-50'
+                  : 'border-white/30 hover:bg-white/10'
               }`}
             >
               <Play className="w-5 h-5" />

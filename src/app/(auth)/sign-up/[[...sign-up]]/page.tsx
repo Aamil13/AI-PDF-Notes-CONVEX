@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense } from 'react';
 import { SignUp } from '@clerk/nextjs';
-import { motion } from 'framer-motion';
+import { easeOut, motion } from 'framer-motion';
 import WidthWrapper from '@/components/WidthWrapper';
 import ShowLoader from '@/components/ShowLoader';
 import Footer from '@/components/Footer';
@@ -9,7 +10,7 @@ import { HeroNavigation } from '@/components/HeroNavbar';
 import { useDelayedReadyState } from '@/Hooks/useDelayedReadyState';
 import { Check } from 'lucide-react';
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const { isReady } = useDelayedReadyState();
 
   const containerVariants = {
@@ -34,7 +35,7 @@ export default function SignUpPage() {
     animate: {
       opacity: 1,
       x: 0,
-      transition: { duration: 0.6, ease: 'easeOut' },
+      transition: { duration: 0.6, ease: easeOut },
     },
     exit: { opacity: 0, x: -100, transition: { duration: 0.4 } },
   };
@@ -52,8 +53,9 @@ export default function SignUpPage() {
         variants={slideInVariants}
       >
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden mt-8 max-md:justify-center">
+          {/* Left Info Section */}
           <motion.div
-            className=" hidden md:w-1/2 bg-muted p-2 lg:p-8 md:flex items-center justify-center"
+            className="hidden md:w-1/2 bg-muted p-2 lg:p-8 md:flex items-center justify-center"
             initial={{ opacity: 0, x: -50 }}
             animate={isReady ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
             transition={{ duration: 0.5 }}
@@ -109,6 +111,7 @@ export default function SignUpPage() {
             </div>
           </motion.div>
 
+          {/* Right Sign Up Section */}
           <motion.div
             className="md:w-1/2 p-2 lg:p-8 flex items-center justify-center"
             initial={{ opacity: 0, x: 50 }}
@@ -123,5 +126,13 @@ export default function SignUpPage() {
         <Footer />
       </motion.div>
     </WidthWrapper>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<ShowLoader />}>
+      <SignUpPageContent />
+    </Suspense>
   );
 }

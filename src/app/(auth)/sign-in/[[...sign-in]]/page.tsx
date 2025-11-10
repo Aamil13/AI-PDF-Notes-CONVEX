@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { Suspense } from 'react';
+import { easeOut, motion } from 'framer-motion';
 import WidthWrapper from '@/components/WidthWrapper';
 import ShowLoader from '@/components/ShowLoader';
 import Footer from '@/components/Footer';
@@ -10,7 +11,7 @@ import { Check } from 'lucide-react';
 import { SignIn } from '@clerk/nextjs';
 import { Spinner } from '@/components/Atoms/Spinner';
 
-export default function Page() {
+function PageContent() {
   const { isReady } = useDelayedReadyState();
 
   const containerVariants = {
@@ -35,7 +36,7 @@ export default function Page() {
     animate: {
       opacity: 1,
       x: 0,
-      transition: { duration: 0.6, ease: 'easeOut' },
+      transition: { duration: 0.6, ease: easeOut },
     },
     exit: { opacity: 0, x: -100, transition: { duration: 0.4 } },
   };
@@ -53,8 +54,9 @@ export default function Page() {
         variants={slideInVariants}
       >
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden max-md:justify-center">
+          {/* Left Side - Info */}
           <motion.div
-            className="hidden  md:w-1/2   p-2 lg:p-8 md:flex items-center justify-center"
+            className="hidden md:w-1/2 p-2 lg:p-8 md:flex items-center justify-center"
             initial={{ opacity: 0, x: -50 }}
             animate={isReady ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
             transition={{ duration: 0.5 }}
@@ -74,7 +76,7 @@ export default function Page() {
                 animate={isReady ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ delay: 0.4, duration: 0.7 }}
               >
-                Log In to get access to all features and Continue your journey
+                Log In to get access to all features and continue your journey
                 with us.
               </motion.p>
               <motion.ul
@@ -110,6 +112,7 @@ export default function Page() {
             </div>
           </motion.div>
 
+          {/* Right Side - Sign In */}
           <motion.div
             className="md:w-1/2 p-4 lg:p-8 flex items-center justify-center"
             initial={{ opacity: 0, x: 50 }}
@@ -121,8 +124,17 @@ export default function Page() {
             </div>
           </motion.div>
         </main>
+
         <Footer />
       </motion.div>
     </WidthWrapper>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<ShowLoader />}>
+      <PageContent />
+    </Suspense>
   );
 }
