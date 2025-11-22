@@ -10,8 +10,6 @@ import {
 import { Input } from '@/components/ui/input';
 
 import { CiSearch } from 'react-icons/ci';
-import { AiOutlineQuestionCircle } from 'react-icons/ai';
-import { CgBell } from 'react-icons/cg';
 import { FaUserCircle } from 'react-icons/fa';
 
 import { useSelectedLayoutSegment } from 'next/navigation';
@@ -23,7 +21,6 @@ import useAppStore from '@/Store/useAppStore';
 import Switch from '../ThemeToggleButton';
 import useDeviceType from '@/Hooks/useDeviceType';
 import dynamic from 'next/dynamic';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useUser } from '@clerk/nextjs';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -35,8 +32,12 @@ const UserButton = dynamic(
 
 const Navbar = () => {
   const segment = useSelectedLayoutSegment();
-  const { toggleNavbar, isNavbarCollapsed, toggleShowSideBarOnMobile } =
-    useAppStore();
+  const {
+    toggleNavbar,
+    isNavbarCollapsed,
+    toggleShowSideBarOnMobile,
+    setModalOpen,
+  } = useAppStore();
   const { isMobile } = useDeviceType();
 
   const { user } = useUser();
@@ -108,12 +109,16 @@ const Navbar = () => {
             placeholder="Search"
           />
         </div>
-        <div className="border-2 border-[#3CC0FC] text-[#3CC0FC] rounded-full text-xs font-semibold p-2 cursor-pointer">
+        <div
+          onClick={() => setModalOpen && setModalOpen(true)}
+          className="border-2 border-[#3CC0FC] text-[#3CC0FC] rounded-full text-xs font-semibold p-2 cursor-pointer"
+        >
           Upgrade
         </div>
+
         <Switch />
 
-        <Popover>
+        {/* <Popover>
           <PopoverTrigger>
             <AiOutlineQuestionCircle className="text-xl cursor-pointer" />
           </PopoverTrigger>
@@ -144,7 +149,7 @@ const Navbar = () => {
           >
             <div className="w-full text-center">No Notification yet!</div>
           </PopoverContent>
-        </Popover>
+        </Popover> */}
 
         <UserButton
           fallback={<FaUserCircle className="text-4xl cursor-pointer" />}

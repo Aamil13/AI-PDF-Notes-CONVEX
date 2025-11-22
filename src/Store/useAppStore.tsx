@@ -11,6 +11,8 @@ interface AppState {
   setInitialTheme: () => void;
   totalFilesUploaded?: number;
   setTotalFilesUploaded?: (count: number) => void;
+  setModalOpen?: (isOpen: boolean) => void;
+  isModalOpen: boolean;
 }
 
 const useAppStore = create<AppState>()(
@@ -20,6 +22,7 @@ const useAppStore = create<AppState>()(
       isNavbarCollapsed: null,
       showSideBarOnMobile: false,
       totalFilesUploaded: 0,
+      isModalOpen: false,
       setTotalFilesUploaded: (count: number) =>
         set({ totalFilesUploaded: count }),
 
@@ -41,6 +44,10 @@ const useAppStore = create<AppState>()(
           'dark',
           savedTheme === 'dark'
         );
+      },
+
+      setModalOpen: (isOpen: boolean) => {
+        set({ isModalOpen: isOpen });
       },
     }),
     {

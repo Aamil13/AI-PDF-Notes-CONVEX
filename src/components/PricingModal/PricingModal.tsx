@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 import { PricingCard } from './PricingCard';
 import { FaFileInvoiceDollar } from 'react-icons/fa6';
 import { ActivePlan } from './ActivePlan';
+import useAppStore from '@/Store/useAppStore';
 
 export function PricingModal({
   isNavbarCollapsed,
@@ -20,6 +21,7 @@ export function PricingModal({
   planActiveTill?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { setModalOpen, isModalOpen } = useAppStore();
 
   return (
     <>
@@ -37,14 +39,16 @@ export function PricingModal({
       </Button>
 
       <AnimatePresence>
-        {isOpen && (
+        {(isOpen || isModalOpen) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              (setIsOpen(false), setModalOpen && setModalOpen(false));
+            }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -55,7 +59,9 @@ export function PricingModal({
               className="relative w-full max-w-md max-h-[90vh] overflow-y-hidden"
             >
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  (setIsOpen(false), setModalOpen && setModalOpen(false));
+                }}
                 className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
               >
                 <X className="w-6 h-6" />

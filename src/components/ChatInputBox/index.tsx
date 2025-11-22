@@ -28,56 +28,71 @@ const ChatInputBox = ({ fileId, setChats, chats }: Props) => {
 
   const handleSendMessage = async () => {
     const textarea = textareaRef.current;
-
     if (!textarea?.value) return;
-    setChats([...chats, { role: 'user', content: textarea.value }]);
-    pushMessageToConvex({ role: 'user', content: textarea.value, fileId });
 
-    const result = await searchAI({
-      query: textarea?.value,
-      fileId,
-      searchAllPdf,
-    });
+    const userMessage: ChatType = { role: 'user', content: textarea.value };
+    const updatedChats: ChatType[] = [...chats, userMessage];
 
-    const userMessage = { role: 'user', content: textarea.value };
-    const chatsWithUser = [...chats, userMessage];
+    setChats(updatedChats);
+    pushMessageToConvex({ ...userMessage, fileId });
 
-    const UnFormattedAns = JSON.parse(result);
-    let AllUnFormattedAns = '';
-    UnFormattedAns.forEach((ans: any) => {
-      AllUnFormattedAns += ans.pageContent;
-    });
+    try {
+      // Step 1: Search PDF content
+      const result = await searchAI({
+        query: textarea.value,
+        fileId,
+        searchAllPdf,
+      });
 
-    const PROMPT = `
+      let allText = result.map((doc: any) => doc.pageContent).join('\n\n');
+
+      // Step 2: Summarize if too large
+      const MAX_PROMPT_LENGTH = 3000;
+      if (allText.length > MAX_PROMPT_LENGTH) {
+        const summarizePrompt = `
+You are given a long text extracted from a PDF resume or document. 
+Summarize it concisely but keep **key information only** — such as skills, roles, dates, companies, and achievements.
+Avoid generic phrasing. Output plain text (no formatting).
+
+Text:
+${allText}
+`;
+
+        const summary = await generateGeminiAnswer(summarizePrompt);
+        allText = summary || allText.slice(0, MAX_PROMPT_LENGTH);
+      }
+
+      // Step 3: Build the main prompt
+      const PROMPT = `
 You are given the following extracted text from a PDF resume or document:
 
-${AllUnFormattedAns}
+${allText}
 
 Current date: ${new Date().toISOString().split('T')[0]}.
 
-Answer the user's question: "${textarea?.value}" in detailed HTML format.
+Answer the user's question: "${textarea.value}" in detailed HTML format.
 
 Guidelines:
-1. Always base your answer strictly on the extracted text above. If the question involves facts, summaries, skills, or descriptions — answer only using what's present in the text.
-2. If the question involves **dates, durations, or calculations** (for example: "total work experience", "duration of employment", "time between roles", etc.), you must:
-   - Identify all date ranges mentioned (e.g., 07/2023 - 12/2023, 04/2024 - 2025).
-   - Treat end dates with only a year (e.g., "2025") as ongoing up to the current date unless explicitly stated otherwise.
-   - Compute durations in months and provide a human-friendly format (e.g., "2 years and 1 month").
-   - Include the breakdown for each experience in your HTML.
-3. If context is too limited to calculate or answer confidently, respond only with: "I don't know".
-4. Use clean structured HTML tags: <h3>, <ul>, <li>, <p>, and <div>.
-5. Apply Tailwind CSS classes for styling:
-   - Every <div> must have class "gap-2".
-   - All other tags (<p>, <h3>, <ul>, <li>, etc.) should include class "mb-1".
-   - Never use max-w, fixed heights, or width restrictions.
-6. Respond **only with the HTML** content. Do not restate the question or add explanations outside HTML.
-
-Now generate the HTML answer following all the above rules.
+- Do not repeat the question in your answer.
+- Use structured HTML: <div class="gap-2"> for containers, <h3>, <ul>, <li>, <p> all with class "mb-1".
+- Do not include explanations outside HTML; respond **only with HTML content**.
 `;
 
-    const answer = await generateGeminiAnswer(PROMPT);
-    pushMessageToConvex({ role: 'ai', content: answer, fileId });
-    setChats([...chatsWithUser, { role: 'ai' as any, content: answer }]);
+      // Step 4: Generate AI answer
+      const answer = await generateGeminiAnswer(PROMPT);
+
+      // Step 5: Update chat state and store
+      pushMessageToConvex({ role: 'ai', content: answer, fileId });
+      setChats([...updatedChats, { role: 'ai' as const, content: answer }]);
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      const errorMessage = '⚠️ An error occurred while generating the answer.';
+      pushMessageToConvex({ role: 'ai', content: errorMessage, fileId });
+      setChats([
+        ...updatedChats,
+        { role: 'ai' as const, content: errorMessage },
+      ]);
+    }
   };
 
   const handleInput = () => {
@@ -88,6 +103,18 @@ Now generate the HTML answer following all the above rules.
     }
   };
 
+  //   const handleSend = async () => {
+  //     if (status === 'loading') return;
+
+  //     setStatus('loading');
+
+  //     await handleSendMessage();
+
+  //     setStatus('sent');
+  //     setStatus('idle');
+  //     textareaRef.current = null;
+  //   };
+
   const handleSend = async () => {
     if (status === 'loading') return;
 
@@ -96,7 +123,27 @@ Now generate the HTML answer following all the above rules.
     await handleSendMessage();
 
     setStatus('sent');
-    setStatus('idle');
+    setTimeout(() => {
+      setStatus('idle');
+      const ta = textareaRef.current;
+      if (ta) {
+        ta.value = '';
+        ta.style.height = '112px';
+      }
+    }, 600);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Shift + Enter → newline (default behavior)
+        return;
+      }
+
+      // Enter alone → send message
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
@@ -104,6 +151,7 @@ Now generate the HTML answer following all the above rules.
       <textarea
         ref={textareaRef}
         onInput={handleInput}
+        onKeyDown={handleKeyDown}
         className="
       bg-white dark:bg-neutral-800
       hide-scrollbar min-h-28 w-full rounded-lg

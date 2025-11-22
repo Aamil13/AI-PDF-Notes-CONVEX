@@ -25,8 +25,6 @@ const Chat = (props: Props) => {
   const fileRecord = useQuery(api.pdf_storage.getFile, { fileId });
   const { isDesktop } = useDeviceType();
 
-  console.log('fileRecord', fileRecord);
-
   return (
     <div className="relative overflow-auto bg-white dark:bg-neutral-600 w-full h-full rounded-3xl flex flex-col  gap-4">
       <ChatPdfDrawer url={fileRecord?.fileUrl || ''} />

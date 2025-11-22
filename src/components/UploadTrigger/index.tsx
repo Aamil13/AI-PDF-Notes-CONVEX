@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+'use client';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { FiUpload } from 'react-icons/fi';
 import {
@@ -19,6 +20,9 @@ import { api } from '../../../convex/_generated/api';
 import uuid4 from 'uuid4';
 import { useUser } from '@clerk/nextjs';
 import axios from 'axios';
+import { toast } from 'sonner';
+import { pdfjs } from 'react-pdf';
+
 type Props = {
   isNavbarCollapsed: boolean;
   canUploadMore: boolean;
@@ -48,11 +52,43 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
     setFileName(e.target.value);
   };
 
+  useEffect(() => {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (!file) return toast.error('No file selected.');
+      const arrayBuffer = await file.arrayBuffer();
+
+      try {
+        await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      } catch (err: any) {
+        if (
+          err.name === 'PasswordException' ||
+          err.message.includes('password')
+        ) {
+          toast.error(
+            'This PDF is password-protected. Please remove the password and try again.',
+            {
+              position: 'top-center',
+              richColors: true,
+            }
+          );
+          return setLoading(false);
+        }
+        toast.error(err?.message || String(err), {
+          position: 'top-center',
+          richColors: true,
+        });
+        return setLoading(false);
+      }
       // Step 1: Get a short-lived upload URL
       const postUrl = await generateUploadUrl();
 
@@ -87,7 +123,13 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
       setIsUploadModalOpen(false);
     } catch (error) {
       setLoading(false);
-      console.error('Error uploading file:', error);
+      setFile(null);
+      setFileName('');
+      //   console.error('Error uploading file:', error);
+      toast.error(String(error), {
+        position: 'top-center',
+        richColors: true,
+      });
     }
   };
 
@@ -104,7 +146,11 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
   const handleOpenChange = (open: boolean) => {
     // Only allow opening the modal if user can upload
     if (open && !canUploadMore) {
-      alert('Upgrade your plan to upload more PDFs.');
+      toast.error('Upgrade your plan to upload more PDFs.', {
+        position: 'top-center',
+        richColors: true,
+      });
+
       return;
     }
     setIsUploadModalOpen(open);
@@ -170,7 +216,7 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
             </DialogClose>
             <Button
               onClick={(e) => handleSubmit(e)}
-              disabled={!file || !fileName}
+              disabled={!file || !fileName || loading}
             >
               {loading ? <Spinner /> : 'Upload'}
             </Button>

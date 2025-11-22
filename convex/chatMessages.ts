@@ -8,7 +8,7 @@ export const getPdfMessages = query({
     return await ctx.db
       .query('chatMessages')
       .filter((q) => q.eq(q.field('fileId'), args.fileId))
-      .order('asc')
+      .order('desc')
       .paginate(args.paginationOpts);
   },
 });

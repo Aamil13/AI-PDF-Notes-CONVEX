@@ -5,7 +5,7 @@ import { BsChatLeftQuoteFill, BsChatLeftDots } from 'react-icons/bs';
 import { CiClock2, CiTrash, CiStar } from 'react-icons/ci';
 import { LiaFilePdf } from 'react-icons/lia';
 import { Progress } from '@/components/ui/progress';
-
+import { toast } from 'sonner';
 import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
 import useAppStore from '@/Store/useAppStore';
 import { motion } from 'framer-motion';
@@ -79,6 +79,9 @@ const Sidebar = () => {
     status: string
   ) => {
     if (status === 'coming soon') {
+      toast.warning('This feature is coming soon!', {
+        position: 'top-center',
+      });
       return;
     }
     setCurrentTab(value);
@@ -102,6 +105,7 @@ const Sidebar = () => {
       toggleNavbar();
     }
   }, []);
+
   if (isNavbarCollapsed == null) {
     return (
       <div
@@ -197,13 +201,13 @@ const Sidebar = () => {
                   : (userDetails?.planActiveTill ?? 0)) > Date.now()
               }
             />
-            <Button
+            {/* <Button
               onClick={() => handleResumeClick()}
               style={{ borderRadius: 10 }}
               className={`bg-white text-neutral-800 hover:bg-[#24AFFC] hover:text-white active:bg-[#000000] text-lg font-poppins flex items-center gap-2 ${isNavbarCollapsed ? 'w-2/3 ' : 'mx-4 w-11/12 h-12'}`}
             >
               <BsChatLeftDots size={32} /> {!isNavbarCollapsed && 'Resume'}
-            </Button>
+            </Button> */}
           </div>
 
           <div className="flex flex-col gap-4 w-full ">

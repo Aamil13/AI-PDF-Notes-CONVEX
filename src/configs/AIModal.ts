@@ -9,7 +9,7 @@ import { GoogleGenAI } from '@google/genai';
  */
 export async function generateGeminiAnswer(
   prompt: string,
-  model = 'gemini-2.0-flash-lite'
+  model = 'gemini-2.5-flash-lite'
 ): Promise<string> {
   if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
     throw new Error('Missing GEMINI_API_KEY environment variable.');

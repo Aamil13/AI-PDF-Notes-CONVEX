@@ -119,7 +119,7 @@ function SignUpPageContent() {
             transition={{ duration: 0.5 }}
           >
             <div className="w-full max-w-md">
-              <SignUp />
+              <SignUp forceRedirectUrl={'/recent'} />
             </div>
           </motion.div>
         </main>
