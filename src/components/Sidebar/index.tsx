@@ -13,11 +13,16 @@ import { Skeleton } from '../ui/skeleton';
 import useDeviceType from '@/Hooks/useDeviceType';
 import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import { MdKeyboardDoubleArrowLeft } from 'react-icons/md';
-import UploadTrigger from '../UploadTrigger';
+// import UploadTrigger from '../UploadTrigger';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '@clerk/nextjs';
 import { PricingModal } from '../PricingModal/PricingModal';
+import dynamic from 'next/dynamic';
+
+const UploadTrigger = dynamic(() => import('../UploadTrigger'), {
+  ssr: false,
+});
 
 const tabs = [
   { icon: CiClock2, title: 'Recent' },

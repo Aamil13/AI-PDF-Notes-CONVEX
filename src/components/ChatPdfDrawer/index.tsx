@@ -9,12 +9,22 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { FileText } from 'lucide-react';
-import PDFViewer from '../PdfViewer';
+
 import useDeviceType from '@/Hooks/useDeviceType';
+import dynamic from 'next/dynamic';
 
 type Props = {
   url: string;
 };
+
+const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-neutral-600">
+      <div className="animate-pulse text-gray-500">Loading PDF viewer...</div>
+    </div>
+  ),
+});
 
 const ChatPdfDrawer = ({ url }: Props) => {
   return (

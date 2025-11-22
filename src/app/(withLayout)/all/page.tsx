@@ -1,4 +1,4 @@
-// import ALLPDFTable from "@/components/tables/all";
+'use client';
 import { ALLPDFTable } from '@/components/tables/all';
 import React from 'react';
 
