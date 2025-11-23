@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 
 export const HeroSection = () => {
   const { theme } = useAppStore();
-
+  const router = useRouter();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -98,6 +98,7 @@ export const HeroSection = () => {
               }}
               whileTap={{ scale: 0.95 }}
               className="bg-[#24AFFC] text-white hover:bg-blue-600 active:bg-black px-8 py-4 rounded-full font-semibold text-lg flex items-center space-x-2 shadow-lg transition-colors"
+              onClick={() => router.push('/recent')}
             >
               <Upload className="w-5 h-5" />
               <span>Upload & Chat Now</span>

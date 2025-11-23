@@ -85,7 +85,9 @@ const ChatMessageContainer = ({ chats, canLoadMore, loadMore }: Props) => {
 
     const container = containerRef.current;
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    // const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+    const isNearBottom =
+      (scrollHeight - scrollTop - clientHeight) / scrollHeight < 0.1;
 
     if (isNearBottom) {
       scrollToBottom();
