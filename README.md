@@ -63,7 +63,7 @@ A modern AI-powered PDF learning platform that lets users upload PDFs, chat with
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/Aamil13/AI-PDF-Notes-CONVEX.git
 cd your-repo-name
 ```
 
