@@ -14,23 +14,30 @@ if (!process.env.GOOGLE_API_KEY) {
 
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GOOGLE_API_KEY ?? '',
-  model: 'text-embedding-004',
+  model: 'gemini-embedding-001',
 });
 
 // --------------------
 // 🧩 Utility: Retry logic for embedding calls
 // --------------------
 
-async function embedWithRetry(
-  embeddings: GoogleGenerativeAIEmbeddings,
+async function ingestWithRetry(
   texts: string[],
+  metadata: any[],
+  embeddings: GoogleGenerativeAIEmbeddings,
+  ctx: any,
   maxRetries = 5
-): Promise<number[][]> {
+): Promise<void> {
   let retries = 0;
   while (retries < maxRetries) {
     try {
-      return await embeddings.embedDocuments(texts);
+      await ConvexVectorStore.fromTexts(texts, metadata, embeddings, { ctx });
+      return;
     } catch (e: any) {
+      // Check for 503 service unavailable error
+      if (e.message?.includes('503') || e.message?.includes('high demand') || e.message?.includes('UNAVAILABLE')) {
+        throw new Error('Google AI service is currently experiencing high demand. Please try again in a few minutes.');
+      }
       if (
         e.message?.includes('RESOURCE_EXHAUSTED') ||
         e.message?.includes('429')
@@ -44,7 +51,7 @@ async function embedWithRetry(
       }
     }
   }
-  throw new Error('Embedding failed after maximum retries.');
+  throw new Error('Ingest failed after maximum retries.');
 }
 
 // --------------------
@@ -54,24 +61,31 @@ async function embedWithRetry(
 export const ingest = action({
   args: { splitText: v.any(), fileId: v.string() },
   handler: async (ctx, args): Promise<void> => {
-    const texts: string[] = Array.isArray(args.splitText)
-      ? args.splitText
-      : [args.splitText];
+    try {
+      const texts: string[] = Array.isArray(args.splitText)
+        ? args.splitText
+        : [args.splitText];
 
-    const metadata = texts.map(() => ({ fileId: args.fileId }));
+      const metadata = texts.map(() => ({ fileId: args.fileId }));
 
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-      const batch = texts.slice(i, i + BATCH_SIZE);
-      const metaBatch = metadata.slice(i, i + BATCH_SIZE);
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+        const batch = texts.slice(i, i + BATCH_SIZE);
+        const metaBatch = metadata.slice(i, i + BATCH_SIZE);
 
-      await embedWithRetry(embeddings, batch);
-      await ConvexVectorStore.fromTexts(batch, metaBatch, embeddings, { ctx });
+        await ingestWithRetry(batch, metaBatch, embeddings, ctx);
+      }
+
+      console.log(
+        `✅ Ingested ${texts.length} text chunks for file ${args.fileId}`
+      );
+    } catch (e: any) {
+      // Check for 503 service unavailable error
+      if (e.message?.includes('503') || e.message?.includes('high demand') || e.message?.includes('UNAVAILABLE')) {
+        throw new Error('Google AI service is currently experiencing high demand. Please try again in a few minutes.');
+      }
+      throw e;
     }
-
-    console.log(
-      `✅ Ingested ${texts.length} text chunks for file ${args.fileId}`
-    );
   },
 });
 
@@ -91,34 +105,42 @@ export const search = action({
       id?: string;
     }>
   > => {
-    const vectorStore = new ConvexVectorStore(embeddings, { ctx });
+    try {
+      const vectorStore = new ConvexVectorStore(embeddings, { ctx });
 
-    const wantsAll =
-      args.searchAllPdf ||
-      /\b(all|total|full|entire|everything|complete|whole)\b/i.test(args.query);
+      const wantsAll =
+        args.searchAllPdf ||
+        /\b(all|total|full|entire|everything|complete|whole)\b/i.test(args.query);
 
-    let results: any[];
+      let results: any[];
 
-    if (wantsAll) {
-      results = await ctx.runQuery(api.document.getAllDocuments, {
-        fileId: args.fileId,
-      });
-    } else {
-      const rawResults = await vectorStore.similaritySearch(args.query, 10);
-      results = rawResults.filter(
-        (r) => (r.metadata as Record<string, any>).fileId === args.fileId
+      if (wantsAll) {
+        results = await ctx.runQuery(api.document.getAllDocuments, {
+          fileId: args.fileId,
+        });
+      } else {
+        const rawResults = await vectorStore.similaritySearch(args.query, 10);
+        results = rawResults.filter(
+          (r) => (r.metadata as Record<string, any>).fileId === args.fileId
+        );
+      }
+
+      console.log(
+        `🔎 Search for "${args.query}" (fileId=${args.fileId}) returned ${results.length} results`
       );
+
+      // ✅ Convert LangChain Documents to plain objects for Convex
+      return results.map((doc) => ({
+        pageContent: doc.pageContent || '',
+        metadata: { ...doc.metadata },
+        id: doc.id || doc.metadata?.id || undefined,
+      }));
+    } catch (e: any) {
+      // Check for 503 service unavailable error
+      if (e.message?.includes('503') || e.message?.includes('high demand') || e.message?.includes('UNAVAILABLE')) {
+        throw new Error('Google AI service is currently experiencing high demand. Please try again in a few minutes.');
+      }
+      throw e;
     }
-
-    console.log(
-      `🔎 Search for "${args.query}" (fileId=${args.fileId}) returned ${results.length} results`
-    );
-
-    // ✅ Convert LangChain Documents to plain objects for Convex
-    return results.map((doc) => ({
-      pageContent: doc.pageContent || '',
-      metadata: { ...doc.metadata },
-      id: doc.id || doc.metadata?.id || undefined,
-    }));
   },
 });

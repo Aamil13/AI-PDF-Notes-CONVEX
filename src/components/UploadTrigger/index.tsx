@@ -19,7 +19,6 @@ import { useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import uuid4 from 'uuid4';
 import { useUser } from '@clerk/nextjs';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { pdfjs } from 'react-pdf';
 
@@ -67,6 +66,9 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
       if (!file) return toast.error('No file selected.');
       const arrayBuffer = await file.arrayBuffer();
 
+      // Create a copy of the ArrayBuffer for later use
+      const arrayBufferCopy = arrayBuffer.slice(0);
+
       try {
         await pdfjs.getDocument({ data: arrayBuffer }).promise;
       } catch (err: any) {
@@ -112,9 +114,27 @@ const UploadTrigger = ({ isNavbarCollapsed, canUploadMore }: Props) => {
         updatedAt: new Date().toISOString(),
       });
 
-      const getResult = await axios.get('/api/pdf-loader?pdfUrl=' + fileUrl);
+      // Process PDF locally using the copy of the ArrayBuffer
+      const pdf = await pdfjs.getDocument({ data: arrayBufferCopy }).promise;
+      let combinedText = '';
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        combinedText += pageText + ' ';
+      }
+      
+      // Split text into chunks
+      const chunkSize = 100;
+      const chunkOverlap = 20;
+      const chunks = [];
+      for (let i = 0; i < combinedText.length; i += chunkSize - chunkOverlap) {
+        chunks.push(combinedText.slice(i, i + chunkSize));
+      }
+      
       await embedDocument({
-        splitText: getResult.data.message,
+        splitText: chunks,
         fileId: fileId,
       });
       setFile(null);
