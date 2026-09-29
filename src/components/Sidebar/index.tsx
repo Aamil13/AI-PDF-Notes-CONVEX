@@ -50,6 +50,7 @@ const Sidebar = () => {
       email: userData.user?.primaryEmailAddress?.emailAddress || '',
     }) || [];
 
+
   const { isMobile } = useDeviceType();
 
   const segment = useSelectedLayoutSegment();
@@ -59,7 +60,7 @@ const Sidebar = () => {
     s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
   useEffect(() => {
-    if (totalFiles?.totalCount && setTotalFilesUploaded) {
+    if (totalFiles?.totalCount !== undefined && setTotalFilesUploaded) {
       setTotalFilesUploaded(totalFiles.totalCount);
     }
   }, [totalFiles, setTotalFilesUploaded]);

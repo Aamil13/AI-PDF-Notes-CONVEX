@@ -1,9 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useAction, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Check, Loader2 } from 'lucide-react';
-import { generateGeminiAnswer } from '@/configs/AIModal';
+import { generateGeminiAnswer, getAvailableGeminiModels } from '@/configs/AIModal';
 import { ChatType } from '../ChatArea';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -24,7 +24,66 @@ const ChatInputBox = ({ fileId, setChats, chats }: Props) => {
   const searchAI = useAction(api.myActions.search);
   const [searchAllPdf, setSearchAllPdf] = useState(false);
   const [status, setStatus] = useState('idle');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [availableModels, setAvailableModels] = useState<Array<{id: string, name: string}>>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const pushMessageToConvex = useMutation(api.chatMessages.createPdfMessages);
+
+  // Set mounted state on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Fetch available models on component mount
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const fetchModels = async () => {
+      try {
+        const models = await getAvailableGeminiModels();
+        
+        // Log all models for debugging
+        console.log('All available models:', models);
+        
+        // Filter for Gemini 2.x and 3.x flash/lite models only, excluding nano, audio, and banana
+        const filteredModels = models.filter(model => {
+          const modelId = model.id.toLowerCase();
+          const modelName = model.name.toLowerCase();
+          
+          // Must contain gemini and be version 2 or 3, and contain flash or lite
+          const isValidGemini = modelId.includes('gemini') && 
+                               (modelId.includes('2') || modelId.includes('3')) && 
+                               (modelId.includes('flash') || modelId.includes('lite'));
+          
+          // Exclude unwanted models
+          const isUnwanted = modelId.includes('nano') || 
+                           modelId.includes('audio') || 
+                           modelId.includes('banana') ||
+                           modelName.includes('nano') || 
+                           modelName.includes('audio') || 
+                           modelName.includes('banana');
+          
+          return isValidGemini && !isUnwanted;
+        });
+        
+        console.log('Filtered models:', filteredModels);
+        
+        // If no models match our filter, use all models as fallback
+        const finalModels = filteredModels.length > 0 ? filteredModels : models;
+        
+        setAvailableModels(finalModels);
+        if (finalModels.length > 0 && !finalModels.find(m => m.id === selectedModel)) {
+          setSelectedModel(finalModels[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    fetchModels();
+  }, [isMounted]);
 
   const handleSendMessage = async () => {
     const textarea = textareaRef.current;
@@ -58,7 +117,7 @@ Text:
 ${allText}
 `;
 
-        const summary = await generateGeminiAnswer(summarizePrompt);
+        const summary = await generateGeminiAnswer(summarizePrompt, selectedModel);
         allText = summary || allText.slice(0, MAX_PROMPT_LENGTH);
       }
 
@@ -79,7 +138,7 @@ Guidelines:
 `;
 
       // Step 4: Generate AI answer
-      const answer = await generateGeminiAnswer(PROMPT);
+      const answer = await generateGeminiAnswer(PROMPT, selectedModel);
 
       // Step 5: Update chat state and store
       pushMessageToConvex({ role: 'ai', content: answer, fileId });
@@ -167,7 +226,7 @@ Guidelines:
         placeholder='Start typing your message... (e.g., "Summarize the document")'
       ></textarea>
 
-      <div className=" absolute  bottom-4 right-32 flex items-center ">
+      <div className=" absolute  bottom-4 right-32 flex items-center gap-4">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -186,6 +245,37 @@ Guidelines:
                   (Search across all pages of the PDF and uses more tokens. You
                   can also include words like "all", "entire", "full",
                   "everything" in your query to enable this automatically)
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={isMounted && isLoadingModels}
+                className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {isLoadingModels ? (
+                  <option>Loading models...</option>
+                ) : (
+                  availableModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-md">
+                <p>Select AI Model</p>
+                <p className="text-xs text-gray-500">
+                  Choose between different Gemini models for AI responses
                 </p>
               </div>
             </TooltipContent>
